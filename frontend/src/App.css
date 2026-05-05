@@ -1,0 +1,32 @@
+main {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.output {
+  min-height: 2rem;
+  margin-top: 1rem;
+}
+
+.error {
+  color: #c00;
+}

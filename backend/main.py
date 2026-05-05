@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
@@ -7,6 +8,13 @@ from torchvision import datasets, transforms
 from model import ARCHITECTURES, load_model
 
 app = FastAPI(title="MNIST Circuit Playground")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
