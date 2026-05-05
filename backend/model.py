@@ -4,7 +4,7 @@ import torch.nn as nn
 
 ARCHITECTURES = ("small", "medium", "tanh", "deep")
 
-MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
+MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 
 
 class SimpleNN(nn.Module):

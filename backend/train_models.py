@@ -47,13 +47,13 @@ def train_one(name, cfg, epochs=3):
             opt.zero_grad(); loss.backward(); opt.step()
         print(f"  {name} epoch {ep+1}/{epochs} loss={loss.item():.4f}")
 
-    out_path = f"../models/{name}.pt"
+    out_path = f"./models/{name}.pt"
     # save both the weights and the config so we can reconstruct the model later
     torch.save({"state_dict": model.state_dict(), "config": cfg}, out_path)
     print(f"  saved {out_path}")
 
 if __name__ == "__main__":
-    os.makedirs("../models", exist_ok=True)
+    os.makedirs("./models", exist_ok=True)
     for name, cfg in ARCHITECTURES.items():
         print(f"training {name}...")
         train_one(name, cfg)
