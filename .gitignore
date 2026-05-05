@@ -1,0 +1,19 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+
+# node / frontend
+node_modules/
+dist/
+.vite/
+
+# datasets (we re-download on demand; don't commit raw MNIST)
+backend/data/
+
+# os / editor
+.DS_Store
+.vscode/
+.idea/
