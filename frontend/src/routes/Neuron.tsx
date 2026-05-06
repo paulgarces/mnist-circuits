@@ -163,7 +163,14 @@ export default function Neuron() {
           </section>
           <section className="full-row">
             <h3>Top activating images</h3>
-            <TopImages images={data.top_images} />
+            <TopImages
+              images={data.top_images}
+              traceLinkBuilder={
+                layer === 'fc2'
+                  ? (idx) => `/trace/${arch}/${id}/${idx}`
+                  : undefined
+              }
+            />
           </section>
         </div>
       )}

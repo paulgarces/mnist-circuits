@@ -186,3 +186,23 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+.contrib-equation {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75em;
+  color: #888;
+  margin-top: 0.15rem;
+}
+
+.trace-subtitle {
+  margin: 1rem 0 1.5rem;
+  font-size: 0.95em;
+  color: #555;
+  line-height: 1.5;
+}
+
+.footnote {
+  margin-top: 1.5rem;
+  font-style: italic;
+  font-size: 0.85em;
+}
