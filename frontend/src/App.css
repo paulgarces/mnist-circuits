@@ -65,3 +65,51 @@ pre {
   padding: 0.5rem;
   border-radius: 4px;
 }
+
+.selectors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.selectors > div {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.selectors .label {
+  display: inline-block;
+  width: 60px;
+  color: #666;
+}
+
+.neuron-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.neuron-grid section h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.neuron-grid .full-row {
+  grid-column: 1 / -1;
+}
+
+.caption {
+  color: #666;
+  font-size: 0.85em;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .neuron-grid {
+    grid-template-columns: 1fr;
+  }
+}
