@@ -278,3 +278,88 @@ def trace(arch: str, neuron_id: int, image_idx: int, k: int = 5):
         "positive_contributors": fc1_entries(pos_ids),
         "negative_contributors": fc1_entries(neg_ids),
     }
+
+
+def _parse_id_list(s: str, max_val: int, name: str) -> list[int]:
+    s = s.strip()
+    if not s:
+        return []
+    try:
+        ids = sorted({int(x.strip()) for x in s.split(",") if x.strip()})
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{name} must be comma-separated integers, got '{s}'",
+        )
+    for i in ids:
+        if i < 0 or i >= max_val:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{name}: {i} out of range [0, {max_val - 1}]",
+            )
+    return ids
+
+
+@app.get("/ablate")
+def ablate(arch: str, fc1_ids: str = "", fc2_ids: str = ""):
+    if arch not in ARCHITECTURES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown arch '{arch}', expected one of {list(ARCHITECTURES)}",
+        )
+
+    model = load_model(arch)
+    h1 = model.fc1.weight.size(0)
+    h2 = model.fc2.weight.size(0)
+
+    fc1_list = _parse_id_list(fc1_ids, h1, "fc1_ids")
+    fc2_list = _parse_id_list(fc2_ids, h2, "fc2_ids")
+
+    images, labels = get_test_set()
+    n = labels.size(0)
+
+    fc1_idx = torch.tensor(fc1_list, dtype=torch.long) if fc1_list else None
+    fc2_idx = torch.tensor(fc2_list, dtype=torch.long) if fc2_list else None
+
+    with torch.no_grad():
+        baseline_logits = model(images)
+        baseline_preds = baseline_logits.argmax(dim=1)
+
+        h1_post = model.act(model.fc1(images))
+        if fc1_idx is not None:
+            h1_post = h1_post.clone()
+            h1_post[:, fc1_idx] = 0
+        h2_post = model.act(model.fc2(h1_post))
+        if fc2_idx is not None:
+            h2_post = h2_post.clone()
+            h2_post[:, fc2_idx] = 0
+        ablated_logits = model.fc3(h2_post)
+        ablated_preds = ablated_logits.argmax(dim=1)
+
+    def metrics(preds):
+        correct = (preds == labels)
+        per_correct: list[int] = []
+        per_total: list[int] = []
+        for c in range(10):
+            mask = labels == c
+            per_total.append(int(mask.sum().item()))
+            per_correct.append(int(correct[mask].sum().item()))
+        return per_correct, per_total, int(correct.sum().item())
+
+    base_correct, per_total, base_overall = metrics(baseline_preds)
+    abl_correct, _, abl_overall = metrics(ablated_preds)
+
+    return {
+        "arch": arch,
+        "ablated": {"fc1": fc1_list, "fc2": fc2_list},
+        "total": n,
+        "per_digit_total": per_total,
+        "baseline": {
+            "overall_correct": base_overall,
+            "per_digit_correct": base_correct,
+        },
+        "ablated_result": {
+            "overall_correct": abl_overall,
+            "per_digit_correct": abl_correct,
+        },
+    }
