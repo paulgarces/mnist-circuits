@@ -3,6 +3,7 @@ import Home from './routes/Home'
 import Neuron from './routes/Neuron'
 import Circuit from './routes/Circuit'
 import Trace from './routes/Trace'
+import Ablate from './routes/Ablate'
 import './App.css'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <NavLink to="/neuron">Neuron explorer</NavLink>
           <NavLink to="/circuit">Circuit</NavLink>
           <NavLink to="/trace">Trace</NavLink>
+          <NavLink to="/ablate">Ablate</NavLink>
         </nav>
       </header>
       <main>
@@ -26,6 +28,8 @@ export default function App() {
           <Route path="/circuit/:arch/:neuronId" element={<Circuit />} />
           <Route path="/trace" element={<Navigate to="/trace/medium/0/0" replace />} />
           <Route path="/trace/:arch/:neuronId/:imageIdx" element={<Trace />} />
+          <Route path="/ablate" element={<Navigate to="/ablate/medium" replace />} />
+          <Route path="/ablate/:arch" element={<Ablate />} />
         </Routes>
       </main>
     </BrowserRouter>
