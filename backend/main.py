@@ -185,3 +185,96 @@ def circuit(arch: str, neuron_id: int, k: int = 5):
         "suppressors": fc1_entries(suppressor_ids),
         "output_weights": outgoing.tolist(),
     }
+
+
+@app.get("/trace")
+def trace(arch: str, neuron_id: int, image_idx: int, k: int = 5):
+    if arch not in ARCHITECTURES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown arch '{arch}', expected one of {list(ARCHITECTURES)}",
+        )
+    if k < 1 or k > 20:
+        raise HTTPException(
+            status_code=400, detail=f"k must be in [1, 20], got {k}"
+        )
+
+    model = load_model(arch)
+    h1 = model.fc1.weight.size(0)
+    h2 = model.fc2.weight.size(0)
+    if neuron_id < 0 or neuron_id >= h2:
+        raise HTTPException(
+            status_code=400,
+            detail=f"neuron_id must be in [0, {h2 - 1}] for {arch}/fc2",
+        )
+
+    images, labels = get_test_set()
+    n_images = images.size(0)
+    if image_idx < 0 or image_idx >= n_images:
+        raise HTTPException(
+            status_code=400,
+            detail=f"image_idx must be in [0, {n_images - 1}]",
+        )
+
+    fc1_acts_cached = get_activations(arch, "fc1")
+    fc2_acts_cached = get_activations(arch, "fc2")
+    eff_k = min(k, h1)
+
+    with torch.no_grad():
+        x = images[image_idx]
+        fc1_pre = fc1_acts_cached[image_idx]
+        h1_post = model.act(fc1_pre)
+        weights = model.fc2.weight[neuron_id]
+        bias = float(model.fc2.bias[neuron_id].item())
+
+        contributions = h1_post * weights
+        total_pre = float(contributions.sum().item()) + bias
+
+        cached_pre = float(fc2_acts_cached[image_idx, neuron_id].item())
+        if abs(total_pre - cached_pre) > 1e-3:
+            raise RuntimeError(
+                f"path-trace math mismatch: computed {total_pre:.6f} != "
+                f"cached fc2_pre {cached_pre:.6f} for "
+                f"{arch}/fc2/{neuron_id}@image_{image_idx}"
+            )
+
+        logits = model(x.unsqueeze(0))
+        predicted_label = int(logits.argmax(dim=1).item())
+
+        pos_ids = torch.topk(contributions, eff_k).indices.tolist()
+        neg_ids = torch.topk(-contributions, eff_k).indices.tolist()
+
+        W1 = model.fc1.weight
+
+    def fc1_entries(ids):
+        result = []
+        for i in ids:
+            w = W1[i]
+            result.append({
+                "fc1_id": int(i),
+                "fc1_activation": float(h1_post[i].item()),
+                "weight": float(weights[i].item()),
+                "contribution": float(contributions[i].item()),
+                "weight_map": {
+                    "values": w.tolist(),
+                    "min": float(w.min().item()),
+                    "max": float(w.max().item()),
+                },
+            })
+        return result
+
+    return {
+        "arch": arch,
+        "neuron_id": neuron_id,
+        "image_idx": image_idx,
+        "h1": h1,
+        "h2": h2,
+        "n_images": n_images,
+        "input_image": x.tolist(),
+        "true_label": int(labels[image_idx].item()),
+        "predicted_label": predicted_label,
+        "fc2_bias": bias,
+        "total_pre_activation": total_pre,
+        "positive_contributors": fc1_entries(pos_ids),
+        "negative_contributors": fc1_entries(neg_ids),
+    }
