@@ -1,13 +1,26 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import torch
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 
 from model import ARCHITECTURES, load_model
+from activations import warmup, get_test_set
 
-app = FastAPI(title="MNIST Circuit Playground")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("[startup] warming caches...")
+    timings = warmup()
+    print("[startup] timings (seconds):")
+    for k, v in timings.items():
+        print(f"  {k}: {v:.2f}")
+    print(f"  total: {sum(timings.values()):.2f}")
+    yield
+
+
+app = FastAPI(title="MNIST Circuit Playground", lifespan=lifespan)
 
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS", "http://localhost:5173"
@@ -20,20 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
-_TEST_LOADER: DataLoader | None = None
 _ACCURACY_CACHE: dict[str, float] = {}
-
-
-def get_test_loader() -> DataLoader:
-    global _TEST_LOADER
-    if _TEST_LOADER is None:
-        test_data = datasets.MNIST(
-            root=DATA_DIR, train=False, download=True, transform=transforms.ToTensor()
-        )
-        _TEST_LOADER = DataLoader(test_data, batch_size=512, shuffle=False)
-    return _TEST_LOADER
 
 
 @app.get("/accuracy")
@@ -46,15 +46,11 @@ def accuracy(arch: str):
     if arch in _ACCURACY_CACHE:
         return {"arch": arch, "accuracy": _ACCURACY_CACHE[arch]}
 
+    images, labels = get_test_set()
     model = load_model(arch)
-    correct = 0
-    total = 0
     with torch.no_grad():
-        for xb, yb in get_test_loader():
-            preds = model(xb).argmax(dim=1)
-            correct += (preds == yb).sum().item()
-            total += yb.size(0)
-
-    acc = correct / total
+        preds = model(images).argmax(dim=1)
+    correct = (preds == labels).sum().item()
+    acc = correct / labels.size(0)
     _ACCURACY_CACHE[arch] = acc
     return {"arch": arch, "accuracy": acc}
