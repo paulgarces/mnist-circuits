@@ -1,6 +1,35 @@
+header {
+  max-width: 900px;
+  margin: 2rem auto 0;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+}
+
+nav {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+nav a {
+  text-decoration: none;
+  color: #555;
+}
+
+nav a[aria-current="page"] {
+  color: #000;
+  font-weight: 600;
+}
+
 main {
-  max-width: 600px;
-  margin: 2rem auto;
+  max-width: 900px;
+  margin: 0 auto 2rem;
   padding: 0 1rem;
   font-family: system-ui, sans-serif;
 }
@@ -29,4 +58,10 @@ button:disabled {
 
 .error {
   color: #c00;
+}
+
+pre {
+  background: #f4f4f4;
+  padding: 0.5rem;
+  border-radius: 4px;
 }
