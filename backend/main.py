@@ -114,3 +114,74 @@ def neuron(arch: str, layer: str, neuron_id: int):
         "digit_profile": digit_profile,
         "top_images": top_images,
     }
+
+
+@app.get("/circuit")
+def circuit(arch: str, neuron_id: int, k: int = 5):
+    if arch not in ARCHITECTURES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown arch '{arch}', expected one of {list(ARCHITECTURES)}",
+        )
+    if k < 1 or k > 20:
+        raise HTTPException(
+            status_code=400, detail=f"k must be in [1, 20], got {k}"
+        )
+
+    model = load_model(arch)
+    h2 = model.fc2.weight.size(0)
+    h1 = model.fc1.weight.size(0)
+    if neuron_id < 0 or neuron_id >= h2:
+        raise HTTPException(
+            status_code=400,
+            detail=f"neuron_id must be in [0, {h2 - 1}] for {arch}/fc2",
+        )
+
+    eff_k = min(k, h1)
+    fc2_acts = get_activations(arch, "fc2")
+    _, labels = get_test_set()
+
+    with torch.no_grad():
+        incoming = model.fc2.weight[neuron_id]
+        outgoing = model.fc3.weight[:, neuron_id]
+        self_weights = incoming @ model.fc1.weight
+        W1 = model.fc1.weight
+
+        exciter_ids = torch.topk(incoming, eff_k).indices.tolist()
+        suppressor_ids = torch.topk(-incoming, eff_k).indices.tolist()
+
+    def fc1_entries(ids):
+        result = []
+        for i in ids:
+            w = W1[i]
+            result.append({
+                "fc1_id": int(i),
+                "weight": float(incoming[i].item()),
+                "weight_map": {
+                    "values": w.tolist(),
+                    "min": float(w.min().item()),
+                    "max": float(w.max().item()),
+                },
+            })
+        return result
+
+    neuron_acts = fc2_acts[:, neuron_id]
+    digit_profile = [
+        float(neuron_acts[labels == c].mean().item()) for c in range(10)
+    ]
+
+    return {
+        "arch": arch,
+        "neuron_id": neuron_id,
+        "h1": h1,
+        "h2": h2,
+        "self_weight_map": {
+            "values": self_weights.tolist(),
+            "min": float(self_weights.min().item()),
+            "max": float(self_weights.max().item()),
+        },
+        "digit_profile": digit_profile,
+        "exciters": fc1_entries(exciter_ids),
+        "suppressors": fc1_entries(suppressor_ids),
+        "output_weights": outgoing.tolist(),
+    }
