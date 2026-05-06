@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { API_URL, ARCHS, LAYERS, type Arch, type Layer } from '../api'
 import WeightMap from '../components/WeightMap'
 import DigitProfile from '../components/DigitProfile'
@@ -133,6 +133,12 @@ export default function Neuron() {
 
       {loading && <p>Loading...</p>}
       {error && <p className="error">Error: {error}</p>}
+
+      {data && !loading && !error && layer === 'fc2' && (
+        <Link to={`/circuit/${arch}/${id}`} className="cross-link">
+          View as circuit →
+        </Link>
+      )}
 
       {data && !loading && !error && (
         <div className="neuron-grid">
