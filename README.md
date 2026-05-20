@@ -1,5 +1,7 @@
 # MNIST Circuit Playground
 
+By Paul Garces, MS in Applied Analytics student at Columbia University.
+
 Interactive web app for poking at what individual neurons in a small MNIST classifier learn, and how groups of neurons wire together into circuits. The goal is to make neural network interpretability concrete for people who learn by clicking on things.
 
 **Live demo:** https://mnist-circuits.vercel.app
